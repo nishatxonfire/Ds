@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Phone, MapPin, Clock, Stethoscope, Menu, X, ChevronRight, Heart, User, Info } from 'lucide-react';
+import { Search, Phone, MapPin, Clock, Stethoscope, Menu, X, ChevronRight, Heart, User, Info, MoreVertical, MessageCircle, Send, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { doctors } from './data/doctors';
 import { Doctor, Specialty } from './types';
@@ -22,6 +22,21 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState<Specialty | 'All'>('All');
   const [expandedDoctorId, setExpandedDoctorId] = useState<string | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAddDoctorModalOpen, setIsAddDoctorModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const [formData, setFormData] = useState({
+    name: '',
+    specialty: 'Medicine',
+    degree: '',
+    hospital: '',
+    chamber: '',
+    phone: '',
+    visitingHours: '',
+    bookingFee: ''
+  });
 
   const filteredDoctors = useMemo(() => {
     return doctors.filter(doc => {
@@ -32,6 +47,70 @@ export default function App() {
       return matchesSearch && matchesSpecialty;
     });
   }, [searchTerm, selectedSpecialty]);
+
+  const handleAddDoctorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitStatus('idle');
+
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const chatId = process.env.TELEGRAM_CHAT_ID;
+
+    if (!botToken || !chatId) {
+      console.error("Telegram credentials missing");
+      alert("টেলিগ্রাম কনফিগারেশন পাওয়া যায়নি। অনুগ্রহ করে ডেভেলপারকে জানান।");
+      setIsSubmitting(false);
+      return;
+    }
+
+    const message = `
+🆕 নতুন ডাক্তার যোগ করার আবেদন:
+👤 নাম: ${formData.name}
+🩺 বিশেষজ্ঞ: ${formData.specialty}
+🎓 ডিগ্রি: ${formData.degree}
+🏥 হাসপাতাল: ${formData.hospital}
+🏢 চেম্বার: ${formData.chamber}
+📞 ফোন: ${formData.phone}
+⏰ সময়: ${formData.visitingHours}
+💰 ফি: ${formData.bookingFee}
+    `;
+
+    try {
+      const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message,
+        }),
+      });
+
+      if (response.ok) {
+        setSubmitStatus('success');
+        setFormData({
+          name: '',
+          specialty: 'Medicine',
+          degree: '',
+          hospital: '',
+          chamber: '',
+          phone: '',
+          visitingHours: '',
+          bookingFee: ''
+        });
+        setTimeout(() => {
+          setIsAddDoctorModalOpen(false);
+          setSubmitStatus('idle');
+        }, 2000);
+      } else {
+        setSubmitStatus('error');
+      }
+    } catch (error) {
+      console.error("Error sending to Telegram:", error);
+      setSubmitStatus('error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen font-sans">
@@ -45,13 +124,241 @@ export default function App() {
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">ব্রাহ্মণবাড়িয়া ডাক্তার</h1>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
-            <button className="bg-emerald-600 text-white px-5 py-2 rounded-full hover:bg-emerald-700 transition-all shadow-md shadow-emerald-200">
-              জরুরী কল
-            </button>
-          </nav>
+          <div className="flex items-center gap-2 md:gap-4">
+            <nav className="hidden md:flex items-center gap-2">
+              <button 
+                onClick={() => window.location.href = 'tel:01761757330'}
+                className="bg-emerald-600 text-white px-5 py-2 rounded-full hover:bg-emerald-700 transition-all shadow-md shadow-emerald-200 flex items-center gap-2 text-sm font-bold"
+              >
+                <Phone className="w-4 h-4" />
+                জরুরী কল
+              </button>
+              <button 
+                onClick={() => window.open('https://wa.me/8801761757330', '_blank')}
+                className="bg-green-500 text-white px-5 py-2 rounded-full hover:bg-green-600 transition-all shadow-md shadow-green-200 flex items-center gap-2 text-sm font-bold"
+              >
+                <MessageCircle className="w-4 h-4" />
+                WhatsApp
+              </button>
+            </nav>
+
+            {/* Three Dot Menu */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600"
+              >
+                <MoreVertical className="w-6 h-6" />
+              </button>
+
+              <AnimatePresence>
+                {isMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsMenuOpen(false)}></div>
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                      className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden"
+                    >
+                      <div className="p-2">
+                        <button 
+                          onClick={() => {
+                            setIsAddDoctorModalOpen(true);
+                            setIsMenuOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-3 text-sm font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 rounded-xl transition-colors flex items-center gap-3"
+                        >
+                          <User className="w-4 h-4" />
+                          ডাক্তার যোগ করুন
+                        </button>
+                        <button 
+                          onClick={() => window.open('https://nishat.bro.bd', '_blank')}
+                          className="w-full text-left px-4 py-3 text-sm font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 rounded-xl transition-colors flex items-center gap-3"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          ডেভেলপার তথ্য
+                        </button>
+                        <div className="md:hidden border-t border-slate-100 mt-1 pt-1">
+                          <button 
+                            onClick={() => window.location.href = 'tel:01761757330'}
+                            className="w-full text-left px-4 py-3 text-sm font-medium text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors flex items-center gap-3"
+                          >
+                            <Phone className="w-4 h-4" />
+                            জরুরী কল
+                          </button>
+                          <button 
+                            onClick={() => window.open('https://wa.me/8801761757330', '_blank')}
+                            className="w-full text-left px-4 py-3 text-sm font-medium text-green-600 hover:bg-green-50 rounded-xl transition-colors flex items-center gap-3"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                            WhatsApp
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
         </div>
       </header>
+
+      {/* Add Doctor Modal */}
+      <AnimatePresence>
+        {isAddDoctorModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              onClick={() => !isSubmitting && setIsAddDoctorModalOpen(false)}
+            ></motion.div>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden z-10"
+            >
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-emerald-600 text-white">
+                <h3 className="text-xl font-bold">নতুন ডাক্তার যোগ করুন</h3>
+                <button 
+                  onClick={() => setIsAddDoctorModalOpen(false)}
+                  className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <form onSubmit={handleAddDoctorSubmit} className="p-6 max-h-[70vh] overflow-y-auto space-y-4">
+                {submitStatus === 'success' ? (
+                  <div className="py-12 text-center">
+                    <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Send className="w-10 h-10" />
+                    </div>
+                    <h4 className="text-2xl font-bold text-slate-900 mb-2">সফলভাবে পাঠানো হয়েছে!</h4>
+                    <p className="text-slate-500">আপনার তথ্যটি রিভিউ করার পর যুক্ত করা হবে।</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">ডাক্তারের নাম *</label>
+                      <input 
+                        required
+                        type="text" 
+                        value={formData.name}
+                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                        placeholder="যেমন: ডাঃ মোঃ রহিম"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-700">বিশেষজ্ঞ বিভাগ *</label>
+                        <select 
+                          value={formData.specialty}
+                          onChange={(e) => setFormData({...formData, specialty: e.target.value})}
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                        >
+                          {specialties.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-700">বুকিং ফি (৳) *</label>
+                        <input 
+                          required
+                          type="number" 
+                          value={formData.bookingFee}
+                          onChange={(e) => setFormData({...formData, bookingFee: e.target.value})}
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                          placeholder="যেমন: ৫০০"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">ডিগ্রি সমূহ *</label>
+                      <input 
+                        required
+                        type="text" 
+                        value={formData.degree}
+                        onChange={(e) => setFormData({...formData, degree: e.target.value})}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                        placeholder="যেমন: MBBS, FCPS"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">বর্তমান কর্মস্থল</label>
+                      <input 
+                        type="text" 
+                        value={formData.hospital}
+                        onChange={(e) => setFormData({...formData, hospital: e.target.value})}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                        placeholder="হাসপাতালের নাম"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">চেম্বারের ঠিকানা *</label>
+                      <input 
+                        required
+                        type="text" 
+                        value={formData.chamber}
+                        onChange={(e) => setFormData({...formData, chamber: e.target.value})}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                        placeholder="চেম্বারের নাম ও এলাকা"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-700">ফোন নম্বর *</label>
+                        <input 
+                          required
+                          type="tel" 
+                          value={formData.phone}
+                          onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                          placeholder="সিরিয়াল দেওয়ার নম্বর"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-700">রোগী দেখার সময় *</label>
+                        <input 
+                          required
+                          type="text" 
+                          value={formData.visitingHours}
+                          onChange={(e) => setFormData({...formData, visitingHours: e.target.value})}
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                          placeholder="যেমন: বিকাল ৪টা - রাত ৮টা"
+                        />
+                      </div>
+                    </div>
+
+                    {submitStatus === 'error' && (
+                      <p className="text-red-500 text-sm font-medium">দুঃখিত, তথ্য পাঠানো সম্ভব হয়নি। আবার চেষ্টা করুন।</p>
+                    )}
+
+                    <div className="pt-4">
+                      <button 
+                        disabled={isSubmitting}
+                        className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {isSubmitting ? 'পাঠানো হচ্ছে...' : 'আবেদন সাবমিট করুন'}
+                        {!isSubmitting && <Send className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Hero Section */}
       <section className="relative py-16 md:py-24 overflow-hidden bg-white">
@@ -252,7 +559,11 @@ export default function App() {
               <ul className="space-y-4 text-slate-400 text-sm">
                 <li className="flex items-center gap-3">
                   <Phone className="w-4 h-4" />
-                  +৮৮০ ১৭০০-০০০০০০
+                  +৮৮০ ১৭৬১৭৫৭৩৩০
+                </li>
+                <li className="flex items-center gap-3 cursor-pointer hover:text-green-400 transition-colors" onClick={() => window.open('https://wa.me/8801761757330', '_blank')}>
+                  <MessageCircle className="w-4 h-4" />
+                  WhatsApp (01761757330)
                 </li>
                 <li className="flex items-center gap-3">
                   <MapPin className="w-4 h-4" />
