@@ -1,10 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Phone, MapPin, Clock, Stethoscope, Menu, X, ChevronRight, Heart, User, Info, MessageSquare } from 'lucide-react';
+import { Search, Phone, MapPin, Clock, Stethoscope, Menu, X, ChevronRight, Heart, User, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { doctors } from './data/doctors';
 import { Doctor, Specialty } from './types';
-import { GoogleGenAI } from "@google/genai";
-import Markdown from 'react-markdown';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -23,10 +21,7 @@ const specialties: { label: string; value: Specialty; icon: React.ReactNode }[] 
 export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState<Specialty | 'All'>('All');
-  const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [expandedDoctorId, setExpandedDoctorId] = useState<string | null>(null);
-  const [isAiLoading, setIsAiLoading] = useState(false);
-  const [chatInput, setChatInput] = useState('');
 
   const filteredDoctors = useMemo(() => {
     return doctors.filter(doc => {
@@ -37,31 +32,6 @@ export default function App() {
       return matchesSearch && matchesSpecialty;
     });
   }, [searchTerm, selectedSpecialty]);
-
-  const handleAiSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim()) return;
-
-    setIsAiLoading(true);
-    setAiResponse(null);
-
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `You are a helpful medical assistant for Brahmanbaria, Bangladesh. 
-        The user is asking: "${chatInput}". 
-        Based on our database: ${JSON.stringify(doctors)}. 
-        Please recommend suitable doctors or provide health advice. Speak in Bengali.`,
-      });
-      setAiResponse(response.text || "দুঃখিত, আমি কোনো তথ্য খুঁজে পাইনি।");
-    } catch (error) {
-      console.error("AI Error:", error);
-      setAiResponse("দুঃখিত, এআই সার্ভারে সমস্যা হচ্ছে। অনুগ্রহ করে পরে চেষ্টা করুন।");
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen font-sans">
@@ -150,53 +120,6 @@ export default function App() {
                 <span className="font-bold text-sm">{spec.label}</span>
               </button>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* AI Assistant */}
-      <section className="py-12">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="bg-emerald-900 rounded-3xl p-8 md:p-12 text-white relative overflow-hidden shadow-2xl">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
-            <div className="relative z-10 max-w-2xl">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="bg-emerald-500 p-2 rounded-lg">
-                  <MessageSquare className="w-5 h-5" />
-                </div>
-                <span className="text-emerald-400 font-bold uppercase tracking-wider text-xs">AI হেলথ অ্যাসিস্ট্যান্ট</span>
-              </div>
-              <h3 className="text-3xl font-bold mb-4">আপনার কি কোনো স্বাস্থ্য জিজ্ঞাসা আছে?</h3>
-              <p className="text-emerald-100/80 mb-8">আমাদের এআই অ্যাসিস্ট্যান্ট আপনাকে সঠিক ডাক্তার খুঁজে পেতে বা প্রাথমিক পরামর্শ দিতে সাহায্য করবে।</p>
-              
-              <form onSubmit={handleAiSearch} className="flex gap-2">
-                <input 
-                  type="text" 
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="যেমন: আমার পেটে ব্যথা করছে, কোন ডাক্তার দেখাব?"
-                  className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <button 
-                  disabled={isAiLoading}
-                  className="bg-white text-emerald-900 px-6 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-colors disabled:opacity-50"
-                >
-                  {isAiLoading ? 'খুঁজছি...' : 'জিজ্ঞাসা করুন'}
-                </button>
-              </form>
-
-              <AnimatePresence>
-                {aiResponse && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-6 p-6 bg-white/5 border border-white/10 rounded-2xl prose prose-invert max-w-none"
-                  >
-                    <Markdown>{aiResponse}</Markdown>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
           </div>
         </div>
       </section>
