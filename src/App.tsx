@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Phone, MapPin, Clock, Stethoscope, Menu, X, ChevronRight, Heart, User, Info, MoreVertical, MessageCircle, Send, ExternalLink } from 'lucide-react';
+import { Search, Phone, MapPin, Clock, Stethoscope, Menu, X, ChevronRight, Heart, User, Info, MoreVertical, MessageCircle, Send, ExternalLink, Award, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { doctors } from './data/doctors';
 import { Doctor, Specialty } from './types';
@@ -24,6 +24,7 @@ export default function App() {
   const [expandedDoctorId, setExpandedDoctorId] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAddDoctorModalOpen, setIsAddDoctorModalOpen] = useState(false);
+  const [selectedDoctorDetails, setSelectedDoctorDetails] = useState<Doctor | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
@@ -53,8 +54,8 @@ export default function App() {
     setIsSubmitting(true);
     setSubmitStatus('idle');
 
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    const chatId = process.env.TELEGRAM_CHAT_ID;
+    const botToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN || "8522798147:AAFzU3qvB8KcE1ssdnP9V2WFkILfMhJhTnA";
+    const chatId = import.meta.env.VITE_TELEGRAM_CHAT_ID || "5780660740";
 
     if (!botToken || !chatId) {
       console.error("Telegram credentials missing");
@@ -204,6 +205,118 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {/* Doctor Details Modal */}
+      <AnimatePresence>
+        {selectedDoctorDetails && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              onClick={() => setSelectedDoctorDetails(null)}
+            ></motion.div>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-emerald-50">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm">
+                    <User className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-slate-900">{selectedDoctorDetails.name}</h3>
+                    <div className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold w-fit mt-1">
+                      {specialties.find(s => s.value === selectedDoctorDetails.specialty)?.label || selectedDoctorDetails.specialty}
+                    </div>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setSelectedDoctorDetails(null)}
+                  className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-500 self-start"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                <div>
+                  <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <Award className="w-4 h-4" />
+                    ডিগ্রি ও যোগ্যতা
+                  </h4>
+                  <p className="text-slate-800 font-medium leading-relaxed">{selectedDoctorDetails.degree}</p>
+                </div>
+
+                {selectedDoctorDetails.experience && (
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                      <Stethoscope className="w-4 h-4" />
+                      অভিজ্ঞতা
+                    </h4>
+                    <p className="text-slate-800 font-medium">{selectedDoctorDetails.experience}</p>
+                  </div>
+                )}
+
+                {selectedDoctorDetails.about && (
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      বিস্তারিত পরিচিতি
+                    </h4>
+                    <p className="text-slate-600 leading-relaxed">{selectedDoctorDetails.about}</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                  <div className="bg-slate-50 p-4 rounded-2xl">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                      <Stethoscope className="w-3 h-3" />
+                      বর্তমান কর্মস্থল
+                    </h4>
+                    <p className="text-slate-800 font-medium">{selectedDoctorDetails.hospital}</p>
+                  </div>
+                  <div className="bg-slate-50 p-4 rounded-2xl">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                      <MapPin className="w-3 h-3" />
+                      চেম্বার
+                    </h4>
+                    <p className="text-slate-800 font-medium">{selectedDoctorDetails.chamber}</p>
+                  </div>
+                  <div className="bg-slate-50 p-4 rounded-2xl">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                      <Clock className="w-3 h-3" />
+                      রোগী দেখার সময়
+                    </h4>
+                    <p className="text-slate-800 font-medium">{selectedDoctorDetails.visitingHours}</p>
+                  </div>
+                  <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+                    <h4 className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-2 flex items-center gap-2">
+                      <User className="w-3 h-3" />
+                      বুকিং ফি
+                    </h4>
+                    <p className="text-emerald-800 font-bold text-lg">৳{selectedDoctorDetails.bookingFee}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-slate-100 bg-white">
+                <button 
+                  onClick={() => window.location.href = `tel:${selectedDoctorDetails.phone}`}
+                  className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200"
+                >
+                  <Phone className="w-5 h-5" />
+                  সিরিয়াল দিন ({selectedDoctorDetails.phone})
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Add Doctor Modal */}
       <AnimatePresence>
@@ -513,14 +626,12 @@ export default function App() {
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
-                      setExpandedDoctorId(expandedDoctorId === doc.id ? null : doc.id);
+                      setSelectedDoctorDetails(doc);
                     }}
-                    className={cn(
-                      "p-3 border border-slate-200 rounded-xl transition-colors",
-                      expandedDoctorId === doc.id ? "bg-emerald-50 border-emerald-200 text-emerald-600" : "hover:bg-slate-50 text-slate-400"
-                    )}
+                    className="p-3 border border-slate-200 rounded-xl transition-colors hover:bg-slate-50 text-slate-600 flex items-center justify-center gap-2"
                   >
                     <Info className="w-5 h-5" />
+                    <span className="text-sm font-bold hidden sm:inline">বিস্তারিত</span>
                   </button>
                 </div>
               </motion.div>

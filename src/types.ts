@@ -8,6 +8,8 @@ export interface Doctor {
   phone: string;
   visitingHours: string;
   bookingFee: number;
+  experience?: string;
+  about?: string;
 }
 
 export type Specialty = 
