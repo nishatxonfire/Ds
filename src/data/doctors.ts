@@ -54,7 +54,7 @@ export const doctors: Doctor[] = [
     about: "ডাঃ মোঃ কামরুল হাসান একজন শিশু রোগ বিশেষজ্ঞ। তিনি শিশুদের বিভিন্ন জটিল রোগের চিকিৎসায় অত্যন্ত পারদর্শী।"
   },
   {
-    id: "2",
+    id: "6",
     name: "ডাঃ ফৌজিয়া আক্তার",
     specialty: "Gynecology",
     degree: "MBBS, DGO, MCPS (Gynae)",
